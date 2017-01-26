@@ -1,0 +1,28 @@
+.bar rect {
+  fill: steelblue;
+}
+
+.bar text {
+  fill: #fff;
+  font: 10px sans-serif;
+}
+
+.graph {
+  height: 500px;
+}
+
+#sentimentFilter {
+  margin-left: 50px;
+}
+
+.sentimentGraph {
+  height: 200px;
+}
+
+a {
+  cursor: pointer;
+}
+
+.moreTopWords {
+  border-radius: 50%;
+}

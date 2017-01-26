@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tweet Analysis</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- nouislider CSS -->
+    <link href="./assets/css/nouislider.min.css" rel="stylesheet">
+
+    <!-- Main CSS -->
+    <link href="./assets/css/main.css" rel="stylesheet">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+
+    <div class="container">
+
+      <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+          <h1 class="text-center">Tweet Analysis</h1>
+          <p class="text-center" id="description"></p>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-xs-12 col-sm-6 col-md-8 col-lg-8 graph">
+          <svg id="mainGraph"></svg>
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+          <h5>Stats:</h5>
+          <pre id="stats"></pre>
+          <h5>Current Filters (Click to remove/toggle)</h5>
+          <pre id="filters"></pre>
+        </div>
+      </div>
+
+
+      <div class="row">
+        <div class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+          <h5>Filter by Words
+            <small> (click to include in filter) </small>
+            (
+              <a class="lessTopWords"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></a>
+              <span id="showingTopWords"></span>
+              <a class="moreTopWords"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></a>
+            )
+          </h5>
+          <div class="list-group" id="topWords"></div>
+        </div>
+
+        <div class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+          <h5>Filter by Language
+            <small> (click to allow in filter) </small>
+            (
+              <a class="lessLangs"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></a>
+              <span id="showingLangs"></span>
+              <a class="moreLangs"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></a>
+            )
+          </h5>
+          <div class="list-group" id="Languages"></div>
+        </div>
+
+        <div class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+          <h5>Filter by Sentiment</h5>
+          <div id="sentimentFilter"></div>
+          <div class="sentimentGraph">
+            <svg id="sentimentGraph"></svg>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+          <h5>Latest Tweet which matches filters
+            (
+              <a class="lessTweets"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></a>
+              <span id="showingTweets"></span>
+              <a class="moreTweets"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></a>
+            )
+          </h5>
+          <pre id="tweetDisplay"></pre>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- jQuery -->
+    <script src="//code.jquery.com/jquery.js"></script>
+    <!-- Bootstrap JavaScript -->
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
+    <!-- Socket Library -->
+    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+
+    <!-- D3 Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.5.0/d3.js"></script>
+
+    <!-- nouislider JS -->
+    <script src="./assets/js/nouislider.min.js"></script>
+
+    <!-- Application JS -->
+    <script src="./assets/js/app.js"></script>
+  </body>
+</html>

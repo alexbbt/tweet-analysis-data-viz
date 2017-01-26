@@ -35,3 +35,14 @@ jspm_packages
 
 # Optional REPL history
 .node_repl_history
+
+# System
+.DS_Store
+.idea
+.vscode
+
+# React
+build
+
+# Config
+private_config.js

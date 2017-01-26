@@ -1,0 +1,26 @@
+{
+  "author": "Alexander Bell-Towne <alexbbt@uw.edu> (bell-towne.com)",
+  "name": "twitter-firehose-sentiment-d3",
+  "description": "Node, D3, Sockets, and Twitter Streaming API",
+  "version": "0.0.0",
+  "license": "CC0-1.0",
+  "repository": {
+    "url": ""
+  },
+  "dependencies": {
+    "body-parser": "^1.15.0",
+    "ejs": "^1.0.0",
+    "express": "^4.6.1",
+    "node-tweet-stream": "^2.0.1",
+    "sentiment": "^3.0.0",
+    "socket.io": "^1.7.2"
+  },
+  "devDependencies": {
+    "eslint": "^3.16.0",
+    "nodemon": "^1.11.0"
+  },
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
+  }
+}
