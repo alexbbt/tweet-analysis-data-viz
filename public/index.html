@@ -34,14 +34,35 @@
       </div>
 
       <div class="row">
-        <div class="col-xs-12 col-sm-6 col-md-8 col-lg-8 graph">
-          <svg id="mainGraph"></svg>
+        <div class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+          <h4 class="text-center">Tweets per 10 second block</h4>
+          <div class="graph">
+            <svg id="mainGraph"></svg>
+          </div>
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+          <h5>Filter by Sentiment</h5>
+          <div id="sentimentFilter"></div>
+          <div class="sentimentGraph">
+            <svg id="sentimentGraph"></svg>
+          </div>
+          <div class="sentimentScaleBox">
+            <div id="sentimentScale"></div>
+          </div>
         </div>
         <div class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
           <h5>Stats:</h5>
           <pre id="stats"></pre>
-          <h5>Current Filters (Click to remove/toggle)</h5>
-          <pre id="filters"></pre>
+          <ul class="list-group">
+            <li class="showRetweetsGroup list-group-item">
+              <label class="showRetweets" >Show Retweets?</label>
+              <!-- Rounded switch -->
+              <label class="switch">
+                <input id="allowRetweets" type="checkbox" checked="checked">
+                <div class="slider round"></div>
+              </label>
+            </li>
+          </ul>
         </div>
       </div>
 
@@ -72,25 +93,29 @@
         </div>
 
         <div class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
-          <h5>Filter by Sentiment</h5>
-          <div id="sentimentFilter"></div>
-          <div class="sentimentGraph">
-            <svg id="sentimentGraph"></svg>
-          </div>
+          <h5>Filter by Hashtag
+            <small> (click to allow in filter) </small>
+            (
+              <a class="lessHashtags"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></a>
+              <span id="showingHashtags"></span>
+              <a class="moreHashtags"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></a>
+            )
+          </h5>
+          <div class="list-group" id="Hashtags"></div>
         </div>
       </div>
 
 
       <div class="row">
         <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-          <h5>Latest Tweet which matches filters
+          <h5>Latest Tweets <small>matching filters </small>
             (
               <a class="lessTweets"><span class="glyphicon glyphicon-minus" aria-hidden="true"></span></a>
               <span id="showingTweets"></span>
               <a class="moreTweets"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></a>
             )
           </h5>
-          <pre id="tweetDisplay"></pre>
+          <div id="tweetDisplay"></div>
         </div>
       </div>
 

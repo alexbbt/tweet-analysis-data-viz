@@ -5,53 +5,148 @@ document.addEventListener("DOMContentLoaded", function() {
 
 	var connection = io();
 	var stopWords=[
-		"a", "able", "about", "across", "after", "all", "almost", "also", "am", "among", "an", "and", "any", "are", "as", "at", "be", "because", "been", "but", "by", "can", "cannot", "could", "dear", "did", "do", "does", "either", "else", "ever", "every", "for", "from", "get", "got", "had", "has", "have", "he", "her", "hers", "him", "his", "how", "however", "i", "if", "in", "into", "is", "it", "its", "just", "least", "let", "like", "likely", "may", "me", "might", "most", "must", "my", "neither", "no", "nor", "not", "of", "off", "often", "on", "only", "or", "other", "our", "own", "rather", "said", "say", "says", "she", "should", "since", "so", "some", "than", "that", "the", "their", "them", "then", "there", "these", "they", "this", "tis", "to", "too", "twas", "us", "wants", "was", "we", "were", "what", "when", "where", "which", "while", "who", "whom", "why", "will", "with", "would", "yet", "you", "your", "ain't", "aren't", "can't", "could've", "couldn't", "didn't", "doesn't", "don't", "hasn't", "he'd", "he'll", "he's", "how'd", "how'll", "how's", "i'd", "i'll", "i'm", "i've", "isn't", "it's", "might've", "mightn't", "must've", "mustn't", "shan't", "she'd", "she'll", "she's", "should've", "shouldn't", "that'll", "that's", "there's", "they'd", "they'll", "they're", "they've", "wasn't", "we'd", "we'll", "we're", "weren't", "what'd", "what's", "when'd", "when'll", "when's", "where'd", "where'll", "where's", "who'd", "who'll", "who's", "why'd", "why'll", "why's", "won't", "would've", "wouldn't", "you'd", "you'll", "you're", "you've"
+		"a", "able", "about", "across", "after", "all", "almost", "also", "am", "among", "an", "and", "any", "are", "as", "at", "be", "because", "been", "but", "by", "can", "cannot", "could", "dear", "did", "do", "does", "either", "else", "ever", "every", "for", "from", "get", "got", "had", "has", "have", "he", "her", "hers", "him", "his", "how", "however", "i", "if", "in", "into", "is", "it", "its", "just", "least", "let", "like", "likely", "may", "me", "might", "most", "must", "my", "neither", "no", "nor", "not", "of", "off", "often", "on", "only", "or", "other", "our", "own", "rather", "said", "say", "says", "she", "should", "since", "so", "some", "than", "that", "the", "their", "them", "then", "there", "these", "they", "this", "tis", "to", "too", "twas", "us", "wants", "was", "we", "were", "what", "when", "where", "which", "while", "who", "whom", "why", "will", "with", "would", "yet", "you", "your", "ain't", "aren't", "can't", "could've", "couldn't", "didn't", "doesn't", "don't", "hasn't", "he'd", "he'll", "he's", "how'd", "how'll", "how's", "i'd", "i'll", "i'm", "i've", "isn't", "it's", "might've", "mightn't", "must've", "mustn't", "shan't", "she'd", "she'll", "she's", "should've", "shouldn't", "that'll", "that's", "there's", "they'd", "they'll", "they're", "they've", "via", "wasn't", "we'd", "we'll", "we're", "weren't", "what'd", "what's", "when'd", "when'll", "when's", "where'd", "where'll", "where's", "who'd", "who'll", "who's", "why'd", "why'll", "why's", "won't", "would've", "wouldn't", "you'd", "you'll", "you're", "you've"
 	];
 
+	var tweetColors = ["#67001f","#b2182b","#d6604d","#f4a582","#fddbc7","#f7f7f7","#d1e5f0","#92c5de","#4393c3","#2166ac","#053061"];
 
 	var filters = {
 		words: [],
 		languages: [],
+		hashtags: [],
 		sentiment: [-15, 15],
 		allowRetweets: true
 	};
+
 	var blobCount = 0;
 	var rawBlobs = [];
 	var blobs = [];
-	var topWordsToShow = 4;
-	var langsToShow = 4;
-	var tweetsToShow = 1;
+
+	var limits = {
+		words: 4,
+		languages: 4,
+		hashtags: 4,
+		tweets: 4
+	};
 
 	var secondsToKeep = 300;
 
-	var word = "";
-
 	var windowJustShown = false;
 
-	// Set the dimensions of the canvas / graph
-	var svg = d3.select("#mainGraph");
-	var parent = document.querySelector("#mainGraph").parentNode;
-	svg.attr("width", parent.scrollWidth).attr("height", parent.scrollHeight);
+	var incrementors = [
+		{
+			selector: "TopWords",
+			update: function() {
+				update();
+			},
+			number: "words"
+		},{
+			selector: "Langs",
+			update: function() {
+				update();
+			},
+			number: "languages"
+		},{
+			selector: "Hashtags",
+			update: function() {
+				update();
+			},
+			number: "hashtags"
+		},{
+			selector: "Tweets",
+			update: function() {
+				update();
+			},
+			number: "tweets"
+		}
+	];
 
-	var margin = {top: 10, right: 30, bottom: 100, left: 30};
-	var width = +svg.attr("width") - margin.left - margin.right;
-	var height = +svg.attr("height") - margin.top - margin.bottom;
-	var graph = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+	var graphs = [
+		{
+			selector: "#mainGraph",
+			type: "bar",
+			scale: "range",
+			margin: {top: 10, right: 0, bottom: 100, left: 30},
+			x: {
+				domain: function(blobs) {
+					return blobs.map(function(d) { return d.time; });
+				},
+				time: true
+			},
+			y: {
+				domain: function(blobs) {
+					return [0, d3.max(blobs, function(d) { return d.tweets.length; })];
+				},
+				ticks: 4
+			},
+			segments: [
+				{
+					class: "bar",
+					color: "steelblue"
+				}
+			]
+		},
+		{
+			selector: "#sentimentGraph",
+			type: "area",
+			scale: "linear",
+			margin: {top: 10, right: 0, bottom: 30, left: 30},
+			x: {
+				domain: function() {
+					return [-15, 15];
+				}
+			},
+			y: {
+				domain: function() {
+					var tweets = countTweetSenitment(blobs, true);
+					return [0, d3.max(tweets, function(d) { return d.count; })];
+				},
+				ticks: 3
+			},
+			segments: [
+				{
+					class: "unfilteredArea",
+					color: "grey",
+					update: function() {
+						return countTweetSenitment(blobs, false);
+					}
+				},
+				{
+					class: "filteredArea",
+					color: "steelblue",
+					update: function() {
+						return countTweetSenitment(blobs, true);
+					}
+				}
+			]
+		}
+	];
 
-	// Set the ranges
-	var x = d3.scaleBand().rangeRound([0, width], .05).padding(0.1);
-	var y = d3.scaleLinear().range([height, 0]);
+	var countTweetSenitment = function(blobs, filter) {
+		return Object.values(copyObject(blobs)
+				.map(function(blob) { return filterBlob(blob, filter); })
+				.reduce(function(counts, blob) {
+					blob.tweets.forEach(function(tweet) {
+						if (counts.hasOwnProperty(tweet.sentiment)) {
+							counts[tweet.sentiment].count++;
+						} else {
+							counts[tweet.sentiment] = {
+								value: tweet.sentiment,
+								count: 1
+							};
+						}
+					});
+					return counts;
+				}, {}))
+				.sort(function(a, b) {
+					return a.value - b.value;
+				});
+	};
+
 	var init = function() {
-		// Add the X Axis
-		graph.append("g")
-			.attr("class", "xAxis")
-			.attr("transform", "translate(0," + height + ")")
-			.call(d3.axisBottom(x));
-
-		// Add the Y Axis
-		graph.append("g")
-			.attr("class", "yAxis")
-			.call(d3.axisLeft(y));
+		graphs = graphs.map(function(graph) {
+			return createGraph(graph);
+		});
 
 		connection.on("tweet", function(data) {
 			blobCount++;
@@ -64,8 +159,25 @@ document.addEventListener("DOMContentLoaded", function() {
 				blobs
 			};
 			if (!document.hidden) {
-				update(blobs);
+				update();
 			}
+		});
+
+		document.querySelector("#allowRetweets").addEventListener("change", function(e) {
+			filters.allowRetweets = e.target.checked;
+			update();
+		});
+
+		var sentimentScale = document.querySelector("#sentimentScale");
+		tweetColors.forEach(function(color) {
+			var box = document.createElement("div");
+			box.style.cssText = `
+				display: inline-block;
+				background-color: ${color};
+				height: ${Math.floor(sentimentScale.scrollWidth / tweetColors.length)}px;
+				width: ${Math.floor(sentimentScale.scrollWidth / tweetColors.length)}px;
+			`;
+			sentimentScale.append(box);
 		});
 
 		document.addEventListener("visibilitychange", function() {
@@ -76,32 +188,7 @@ document.addEventListener("DOMContentLoaded", function() {
 			}
 		});
 
-		document.querySelector(".moreTopWords").addEventListener("click", function() {
-			topWordsToShow++;
-			update();
-		});
-		document.querySelector(".lessTopWords").addEventListener("click", function() {
-			topWordsToShow--;
-			update();
-		});
-
-		document.querySelector(".moreLangs").addEventListener("click", function() {
-			langsToShow++;
-			update();
-		});
-		document.querySelector(".lessLangs").addEventListener("click", function() {
-			langsToShow--;
-			update();
-		});
-
-		document.querySelector(".moreTweets").addEventListener("click", function() {
-			tweetsToShow++;
-			update();
-		});
-		document.querySelector(".lessTweets").addEventListener("click", function() {
-			tweetsToShow--;
-			update();
-		});
+		incrementors.forEach(createIncrementor);
 
 		var rangeSlider = document.querySelector("#sentimentFilter");
 		noUiSlider.create(rangeSlider, {
@@ -116,11 +203,6 @@ document.addEventListener("DOMContentLoaded", function() {
 			filters.sentiment = range.map(function(num) { return parseInt(num); });
 			update();
 		});
-
-	};
-
-	var copyObject = function(o) {
-		return JSON.parse(JSON.stringify(o));
 	};
 
 	var mergeBlobs = function(blobs) {
@@ -149,8 +231,21 @@ document.addEventListener("DOMContentLoaded", function() {
 					hasFilterWords = false;
 				}
 			});
+			var hasHashtags = true;
+			filters.hashtags.forEach(function(filterHashtag) {
+				var found = !!tweet.hashtags.find(function(hashtag) {
+					return filterHashtag === hashtag.text.toLowerCase();
+				});
+				if (!found) {
+					hasHashtags = false;
+				}
+				if (hasHashtags) {
+					var i = i;
+				}
+			});
 			return (
 				hasFilterWords &&
+				hasHashtags &&
 				(filters.languages.length === 0 || filters.languages.indexOf(tweet.lang) > -1) &&
 				(filters.allowRetweets || !tweet.retweeted_status) &&
 				(!useSentiment || (tweet.sentiment >= filters.sentiment[0] && tweet.sentiment <= filters.sentiment[1]))
@@ -181,59 +276,23 @@ document.addEventListener("DOMContentLoaded", function() {
 		}, null, 2);
 
 		var displayTweets = filteredBlobs.reduce(function(displayTweets, blob) {
-			blob.tweets.forEach(function(tweet) {
-				displayTweets.push({
-					user: tweet.user,
-					time: tweet.created_at,
-					text: tweet.text,
-					sentiment: tweet.sentiment
-				});
-			});
-			return displayTweets;
-		}, []).slice(-tweetsToShow);
-		var urlRegex = /(https?:\/\/(?:www\.|(?!www))[^\s\.]+\.[^\s]{2,}|www\.[^\s]+\.[^\s]{2,})/;
-		var formattedDisplay = JSON.stringify(displayTweets, null, 2).split("\\n").join("\n      ").replace(urlRegex, function(match) {
-			return `<a target=_blank href=${match}>${match}</a>`;
-		} );
-		document.getElementById("tweetDisplay").innerHTML = formattedDisplay;
+			return displayTweets.concat(blob.tweets.map(function(tweet) {
+				return (`
+					<div className="tweetBox">
+						<blockquote className="twitter-tweet" style="border-color: ${tweetColors[Math.floor(((tweet.sentiment + 15) / 30) * tweetColors.length)]};">
+							<p className="tweetText">${tweet.text}</p>
+								&mdash; ${tweet.user} (@${tweet.screen_name})
+							<a target="_blank" className="pull-right" href="https://twitter.com/${tweet.screen_name}/status/${tweet.id}">
+								${new Date(parseInt(tweet.timestamp_ms, 10)).toLocaleString()}
+							</a>
+						</blockquote>
+					</div>
+				`);
+			}));
+		}, []).slice(-limits.tweets);
+		document.getElementById("tweetDisplay").innerHTML = displayTweets.join("");
 
-		word = blobs[0].word;
-		document.getElementById("description").innerHTML = `Analysis of Tweets with the word: ${word}. Tweets are 1% of the live tweeter stream, chunked to one second blobs. Tweets are dumped after ${secondsToKeep} seconds to conserve memory.`;
-	};
-
-	var updateFilterDisplay = function() {
-		var filterString = "";
-		var filterLinkedObject = copyObject(filters);
-		filterLinkedObject.words = filterLinkedObject.words.map(function(word) {
-			return `<a id=word${word}>${word}</a>`;
-		});
-		filterLinkedObject.languages = filterLinkedObject.languages.map(function(lang) {
-			return `<a id=lang${lang}>${lang}</a>`;
-		});
-		filterLinkedObject.sentiment = JSON.stringify(filterLinkedObject.sentiment, null, 1).split("\n").join("");
-		filterLinkedObject.allowRetweets = `<a id=allowRetweets>${filterLinkedObject.allowRetweets}</a>`;
-		filterString = JSON.stringify(filterLinkedObject, null, 2);
-		document.getElementById("filters").innerHTML = filterString;
-		filters.words.forEach(function(word) {
-			document.getElementById("word" + word).addEventListener("click", function() {
-				filters.words = filters.words.filter(function(fword) {
-					return fword !== word;
-				});
-				update();
-			});
-		});
-		filters.languages.forEach(function(lang) {
-			document.getElementById("lang" + lang).addEventListener("click", function() {
-				filters.languages = filters.languages.filter(function(flang) {
-					return flang !== lang;
-				});
-				update();
-			});
-		});
-		document.getElementById("allowRetweets").addEventListener("click", function() {
-			filters.allowRetweets = !filters.allowRetweets;
-			update();
-		});
+		document.getElementById("description").innerHTML = `Analysis of Tweets with the word: ${blobs[0].word}. Tweets are 1% of the live tweeter stream, chunked to one second blobs. Tweets are dumped after ${secondsToKeep} seconds to conserve memory.`;
 	};
 
 	var updateTopWords = function(blobs) {
@@ -249,8 +308,7 @@ document.addEventListener("DOMContentLoaded", function() {
 						stopWords.indexOf(key) > -1 ||
 						key.indexOf(blob.word.toLowerCase()) > -1 ||
 						key.indexOf("http:") > -1 ||
-						/\W/.test(key) ||
-						filters.words.indexOf(key) > -1
+						/\W/.test(key)
 					) {
 						return;
 					}
@@ -259,7 +317,8 @@ document.addEventListener("DOMContentLoaded", function() {
 					} else {
 						partial[key] = {
 							word: key,
-							count: 1
+							count: 1,
+							active: filters.words.indexOf(key) > -1
 						};
 					}
 				});
@@ -268,38 +327,123 @@ document.addEventListener("DOMContentLoaded", function() {
 		}, {})).sort(function(a, b) {
 			return b.count - a.count;
 		});
-		// console.log(mostPopularWords.slice(0, 3).reduce(function(s, w) { return s + w.word + ":" + w.count + " "; }, ""));
+		var currentWords = filters.words.map(function(word) {
+			return {
+				word: word,
+				active: true
+			};
+		});
+		var groupedWords = currentWords.concat(mostPopularWords.filter(function(d) { return !d.active; }));
 		var topWords = d3.select("#topWords").selectAll(".list-group-item")
-			.data(mostPopularWords.slice(0, topWordsToShow), function(d) { return d.word + d.count; });
+			.data(groupedWords.slice(0, limits.words), function(d) { return d.word + d.count; });
 		topWords.exit().remove();
 		topWords.enter()
 			.append("a")
 				.on("click", function(d) {
-					filters.words.push(d.word);
+					if (d.active) {
+						filters.words = filters.words.filter(function(word) {
+							return word !== d.word;
+						});
+					} else {
+						filters.words.push(d.word);
+					}
 					update();
 				})
-				.attr("class", "list-group-item")
+				.attr("class", function(d) {
+					if (d.active) {
+						return "list-group-item active";
+					}
+					return "list-group-item";
+				})
 				.text(function(d) { return d.word; })
 				.append("span")
 					.attr("class", "badge")
 					.text(function(d) { return d.count; });
+		topWords.attr("class", function(d) {
+			if (d.active) {
+				return "list-group-item active";
+			}
+			return "list-group-item";
+		});
+	};
+
+	var updateHashtags = function(blobs) {
+		var hashtags = Object.values(blobs.reduce(function(partial, blob) {
+			blob.tweets.forEach(function(tweet) {
+				if (tweet.retweeted_status) {
+					return;
+				}
+				tweet.hashtags.forEach(function(hashtag) {
+					var key = hashtag.text.toLowerCase();
+					if (key.length === 0) {
+						return;
+					}
+					if (partial.hasOwnProperty(key)) {
+						partial[key].count++;
+					} else {
+						partial[key] = {
+							text: key,
+							count: 1,
+							active: filters.hashtags.indexOf(key) > -1
+						};
+					}
+				});
+			});
+			return partial;
+		}, {})).sort(function(a, b) {
+			return b.count - a.count;
+		});
+		var currentHashtags = filters.hashtags.map(function(hashtag) {
+			return {
+				text: hashtag,
+				active: true
+			};
+		});
+		var groupedHashtags = currentHashtags.concat(hashtags.filter(function(d) { return !d.active; }));
+		var topHashtags = d3.select("#Hashtags").selectAll(".list-group-item")
+			.data(groupedHashtags.slice(0, limits.hashtags), function(d) { return d.text + d.count; });
+		topHashtags.exit().remove();
+		topHashtags.enter()
+			.append("a")
+				.on("click", function(d) {
+					if (d.active) {
+						filters.hashtags = filters.hashtags.filter(function(hashtag) {
+							return hashtag !== d.text;
+						});
+					} else {
+						filters.hashtags.push(d.text);
+					}
+					update();
+				})
+				.attr("class", function(d) {
+					if (d.active) {
+						return "list-group-item active";
+					}
+					return "list-group-item";
+				})
+				.text(function(d) { return "#" + d.text; })
+				.append("span")
+					.attr("class", "badge")
+					.text(function(d) { return d.count; });
+		topHashtags.attr("class", function(d) {
+			if (d.active) {
+				return "list-group-item active";
+			}
+			return "list-group-item";
+		});
 	};
 
 	var updateLanguages = function() {
 		var languages = Object.values(blobs.reduce(function(languages, blob) {
 			blob.tweets.forEach(function(tweet) {
 				var language = tweet.lang;
-				if (
-					filters.languages.indexOf(language) > -1
-				) {
-					return;
-				}
 				if (languages.hasOwnProperty(language)) {
 					languages[language].count++;
 				} else {
 					languages[language] = {
 						language: language,
-						count: 1
+						count: 1,
+						active: filters.languages.indexOf(language) > -1
 					};
 				}
 			});
@@ -307,21 +451,38 @@ document.addEventListener("DOMContentLoaded", function() {
 		}, {})).sort(function(a, b) {
 			return b.count - a.count;
 		});
-		// console.log(languages.slice(0, langsToShow).reduce(function(s, w) { return s + w.language + ":" + w.count + " "; }, ""));
-		var topWords = d3.select("#Languages").selectAll(".list-group-item")
-			.data(languages.slice(0, langsToShow), function(d) { return d.language + d.count; });
-		topWords.exit().remove();
-		topWords.enter()
+		var topLanguages = d3.select("#Languages").selectAll(".list-group-item")
+			.data(languages.slice(0, limits.languages), function(d) { return d.language + d.count; });
+		topLanguages.exit().remove();
+		topLanguages.enter()
 			.append("a")
 				.on("click", function(d) {
-					filters.languages.push(d.language);
+					if (d.active) {
+						filters.languages = filters.languages.filter(function(language) {
+							return language !== d.language;
+						});
+					} else {
+						filters.languages.push(d.language);
+					}
 					update();
 				})
-				.attr("class", "list-group-item")
+				.attr("class", function(d) {
+					if (d.active) {
+						return "list-group-item active";
+					}
+					return "list-group-item";
+				})
 				.html(function(d) { return d.language; })
 				.append("span")
 					.attr("class", "badge")
 					.html(function(d) { return d.count; });
+		topLanguages.attr("class", function(d) {
+			if (d.active) {
+				return "list-group-item active";
+			}
+			return "list-group-item";
+		});
+
 	};
 
 	var update = function() {
@@ -329,177 +490,191 @@ document.addEventListener("DOMContentLoaded", function() {
 
 		updateTopWords(filteredBlobs);
 		updateLanguages();
-		updateFilterDisplay();
+		updateHashtags(filteredBlobs);
 		updateStatsDisplay(filteredBlobs);
-		updateSentimentGraph();
 
-		document.querySelector("#showingTopWords").innerHTML = topWordsToShow;
-		document.querySelector("#showingLangs").innerHTML = langsToShow;
-		document.querySelector("#showingTweets").innerHTML = tweetsToShow;
+		graphs.forEach(function(updateGraph) {
+			updateGraph(filteredBlobs);
+		});
 
-		// Scale the range of the data
-		x.domain(filteredBlobs.map(function(d) { return d.time; }));
-		y.domain([0, d3.max(filteredBlobs, function(d) { return d.tweets.length; })]);
-
-		var t = d3.transition();
-		if (!windowJustShown) {
-			t.duration(750);
-		} else {
-			t.duration(0);
-		}
-
-		var bars = graph.selectAll(".bar")
-				.data(filteredBlobs, function(d) { return d.time; });
-		// Add the Y Axis
-		graph.select(".yAxis")
-			.transition(t)
-			.call(d3.axisLeft(y));
-
-		bars.exit()
-			.transition(t)
-				.attr("width", 0)
-				.attr("y", function() { return y(0); })
-				.attr("height", function() { return height - y(0); })
-				.remove();
-
-		bars
-			.enter().append("rect")
-				.attr("class", "bar")
-				.style("fill", "steelblue")
-				.attr("x", function(d) { return x.bandwidth() + x(d.time); })
-				.attr("width", 0)
-				.attr("y", function() { return y(0); })
-				.attr("height", function() { return height - y(0); })
-				.transition(t)
-					.attr("x", function(d) { return x(d.time); })
-					.attr("width", x.bandwidth())
-					.attr("y", function(d) { return y(d.tweets.length); })
-					.attr("height", function(d) { return height - y(d.tweets.length); });
-
-		bars
-			.style("fill", "steelblue")
-			.transition(t)
-				.attr("x", function(d) { return x(d.time); })
-				.attr("width", x.bandwidth())
-				.attr("y", function(d) { return y(d.tweets.length); })
-				.attr("height", function(d) { return height - y(d.tweets.length); });
-
-		// Add the X Axis
-		graph.select(".xAxis")
-			.transition(t)
-			.attr("transform", "translate(0," + height + ")")
-			.call(d3.axisBottom(x).tickFormat(d3.timeFormat("%I:%M:%S %p")))
-				.selectAll("text")
-					.style("text-anchor", "end")
-					.attr("dx", "-.8em")
-					.attr("dy", ".15em")
-					.attr("transform", "rotate(-65)");
+		incrementors.forEach(function(incrementor) {
+			document.querySelector(`#showing${incrementor.selector}`).innerHTML = limits[incrementor.number];
+		});
 	};
 
-	init();
+	var createIncrementor = function(options) {
+		document.querySelector(`.more${options.selector}`).addEventListener("click", function() {
+			limits[options.number]++;
+			options.update();
+		});
+		document.querySelector(`.less${options.selector}`).addEventListener("click", function() {
+			limits[options.number]--;
+			options.update();
+		});
+	};
 
-	var updateSentimentGraph = (function() {
-		var sentimentGraphSvg = d3.select("#sentimentGraph");
-		var sentimentGraphParent = document.querySelector("#sentimentGraph").parentNode;
-		sentimentGraphSvg.attr("width", sentimentGraphParent.scrollWidth).attr("height", sentimentGraphParent.scrollHeight);
+	var createGraph = function(options) {
+		var segments = options.segments;
 
-		var sentimentGraphMargin = {top: 10, right: 0, bottom: 30, left: 50};
-		var sentimentGraphWidth = +sentimentGraphSvg.attr("width") - sentimentGraphMargin.left - sentimentGraphMargin.right;
-		var sentimentGraphHeight = +sentimentGraphSvg.attr("height") - sentimentGraphMargin.top - sentimentGraphMargin.bottom;
-		var sentimentGraph = sentimentGraphSvg.append("g").attr("transform", "translate(" + sentimentGraphMargin.left + "," + sentimentGraphMargin.top + ")");
-		var counts = [];
-		var unfilteredCounts = [];
+		// Set the dimensions of the canvas / graph
+		var svg = d3.select(options.selector);
+		var graphParent = document.querySelector(options.selector).parentNode;
+		svg.attr("width", graphParent.scrollWidth).attr("height", graphParent.scrollHeight);
 
-		var x = d3.scaleLinear()
-				.domain([-15, 15])
-				.range([0, sentimentGraphWidth]);
+		var margin = options.margin;
+		var width = +svg.attr("width") - margin.left - margin.right;
+		var height = +svg.attr("height") - margin.top - margin.bottom;
+		var graph = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		// Set the ranges
+		var x;
+		switch(options.scale){
+		case "linear":
+			x = d3.scaleLinear()
+				.range([0, width]);
+			break;
+		case "range":
+			x = d3.scaleBand()
+				.rangeRound([0, width], .05)
+				.padding(0.1);
+			break;
+		}
 
 		var y = d3.scaleLinear()
-				.range([sentimentGraphHeight, 0]);
+				.range([height, 0]);
 
-		var area = d3.area()
-			.x(function(d) { return x(d.value); })
-			.y0(sentimentGraphHeight)
-			.y1(function(d) { return y(d.count); });
+		// Graph Type
+		var transform;
+		switch(options.type) {
+		case "area":
+			transform = d3.area()
+				.x(function(d) { return x(d.value); })
+				.y0(height)
+				.y1(function(d) { return y(d.count); });
+			break;
+		case "bar":
+			transform = d3.area()
+				.x(function(d) { return x(d.value); })
+				.y0(height)
+				.y1(function(d) { return y(d.count); });
+			break;
+		}
 
-		sentimentGraph.append("path")
-				.attr("class", "unfilteredArea")
-				.attr("fill", "grey")
-				.attr("d", area([]));
-
-		sentimentGraph.append("path")
-				.attr("class", "filteredArea")
-				.attr("fill", "steelblue")
-				.attr("d", area([]));
+		segments.forEach(function(segment) {
+			switch(options.type) {
+			case "area":
+				graph.append("path")
+						.attr("class", segment.class)
+						.attr("fill", segment.color)
+						.attr("d", transform([]));
+				break;
+			}
+		});
 
 		// Add the Y Axis
-		sentimentGraph.append("g")
-			.attr("class", "yAxis")
-			.call(d3.axisLeft(y).ticks(3));
+		graph.append("g")
+			.attr("class", "yAxis");
 
-		sentimentGraph.append("g")
+		// Add the X Axis}
+		graph.append("g")
 			.attr("class", "xAxis")
-			.attr("transform", "translate(0," + height + ")")
-			.call(d3.axisBottom(x));
+			.attr("transform", "translate(0," + height + ")");
 
-		var countTweetSenitment = function(blobs, filter) {
-			return Object.values(copyObject(blobs)
-				.map(function(blob) { return filterBlob(blob, filter); })
-				.reduce(function(counts, blob) {
-					blob.tweets.forEach(function(tweet) {
-						if (counts.hasOwnProperty(tweet.sentiment)) {
-							counts[tweet.sentiment].count++;
-						} else {
-							counts[tweet.sentiment] = {
-								value: tweet.sentiment,
-								count: 1
-							};
-						}
-					});
-					return counts;
-				}, {}))
-				.sort(function(a, b) {
-					return a.value - b.value;
-				});
-		};
-
-		var updateSentimentGraph = function() {
-			counts = countTweetSenitment(blobs, true);
-			unfilteredCounts = countTweetSenitment(blobs, false);
-
-			if (counts.length === 0) {
-				return;
+		var updateGraph = function(blobs) {
+			var t = d3.transition();
+			if (!windowJustShown) {
+				t.duration(750);
+			} else {
+				t.duration(0);
 			}
 
-			y.domain([0, d3.max(counts, function(d) { return d.count; })]);
-			area.y0(y(0));
+			// Scale the range of the data
+			x.domain(options.x.domain(blobs));
+			y.domain(options.y.domain(blobs));
+			segments.forEach(function(segment) {
 
-			sentimentGraph.select(".filteredArea")
-				.attr("d", area(counts));
+				switch(options.type) {
+				case "area":
+					var data = segment.update();
+					if (data.length <= 0) {
+						return;
+					}
+					graph.select(`.${segment.class}`)
+						.attr("d", transform(data));
+					break;
+				case "bar":
+					var bars = graph.selectAll(`.${segment.class}`)
+							.data(blobs, function(d) { return d.time; });
+					bars.exit()
+						.transition(t)
+							.attr("width", 0)
+							.attr("y", function() { return y(0); })
+							.attr("height", function() { return height - y(0); })
+							.remove();
 
-			sentimentGraph.select(".unfilteredArea")
-				.attr("d", area(unfilteredCounts));
+					bars
+						.enter().append("rect")
+							.attr("class", segment.class)
+							.style("fill", segment.color)
+							.attr("x", function(d) { return x.bandwidth() + x(d.time); })
+							.attr("width", 0)
+							.attr("y", function() { return y(0); })
+							.attr("height", function() { return height - y(0); })
+							.transition(t)
+								.attr("x", function(d) { return x(d.time); })
+								.attr("width", x.bandwidth())
+								.attr("y", function(d) { return y(d.tweets.length); })
+								.attr("height", function(d) { return height - y(d.tweets.length); });
 
-			var t = d3.transition().duration(750);
+					bars
+						.transition(t)
+							.attr("x", function(d) { return x(d.time); })
+							.attr("width", x.bandwidth())
+							.attr("y", function(d) { return y(d.tweets.length); })
+							.attr("height", function(d) { return height - y(d.tweets.length); });
+					break;
+				}
+			});
 
-			// Add the Y Axis
-			sentimentGraph.select(".yAxis")
+			// Update the Y Axis
+			var yAxis = d3.axisLeft(y);
+			if (options.y.ticks) {
+				yAxis.ticks(options.y.ticks);
+			}
+			if (options.y.time) {
+				yAxis.tickFormat(d3.timeFormat("%I:%M:%S %p"));
+			}
+			graph.select(".yAxis")
 				.transition(t)
-				.call(d3.axisLeft(y).ticks(3));
+				.call(yAxis);
 
-			// Add the X Axis
-			sentimentGraph.select(".xAxis")
-				.attr("transform", "translate(0," + sentimentGraphHeight + ")")
-				.call(d3.axisBottom(x))
+
+			// Update the X Axis
+			var xAxis = d3.axisBottom(x);
+			if (options.x.ticks) {
+				xAxis.ticks(options.x.ticks);
+			}
+			if (options.x.time) {
+				xAxis.tickFormat(d3.timeFormat("%I:%M:%S %p"));
+			}
+			graph.select(".xAxis")
+				.attr("transform", "translate(0," + height + ")")
+				.transition(t)
+				.call(xAxis)
 					.selectAll("text")
 						.style("text-anchor", "end")
 						.attr("dx", "-.8em")
 						.attr("dy", ".15em")
 						.attr("transform", "rotate(-65)");
-
 		};
-		updateSentimentGraph();
+		updateGraph([]);
 
-		return updateSentimentGraph;
-	})();
+		return updateGraph;
+	};
+
+	var copyObject = function(o) {
+		return JSON.parse(JSON.stringify(o));
+	};
+
+	init();
 });
